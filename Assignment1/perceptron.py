@@ -12,7 +12,7 @@ class Perceptron(object):
             learning_rate: magnitude of weight changes at each training cycle
         """
         self.n_inputs = n_inputs
-        self.weights = np.random.normal(0, 1, n_inputs)
+        self.weights = np.random.normal(0, 1, n_inputs + 1)
         self.max_epochs = max_epochs
         self.lr = learning_rate
 
@@ -22,7 +22,7 @@ class Perceptron(object):
         Args:
             input: array of dimension equal to n_inputs.
         """
-        label = np.matmul(self.weights, input)
+        label = np.matmul(self.weights[1:], input) + self.weights[0]
         return label
 
     def train(self, training_inputs, labels):
@@ -36,4 +36,5 @@ class Perceptron(object):
             for x, y in zip(training_inputs, labels):
                 pred = self.forward(x)
                 mask = y * pred <= 0
-                self.weights += self.lr * np.outer(y[mask], x[mask])
+                self.weights[0] += self.lr * np.sum(y[mask])
+                self.weights[1:] += self.lr * np.outer(y[mask], x[mask])
