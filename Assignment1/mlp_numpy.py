@@ -8,28 +8,21 @@ from modules import *
 class MLP(object):
 
     def __init__(self, n_inputs, n_hidden, n_classes):
-        """
-        Initializes multi-layer perceptron object.    
-        Args:
-            n_inputs: number of inputs (i.e., dimension of an input vector).
-            n_hidden: list of integers, where each integer is the number of units in each linear layer
-            n_classes: number of classes of the classification problem (i.e., output dimension of the network)
-        """
+        self.layers = []
+        in_features = n_inputs
+        for out_features in n_hidden:
+            self.layers.append(Linear(in_features, out_features))
+            self.layers.append(ReLU())
+            in_features = out_features
+        self.layers.append(Linear(in_features, n_classes))
+        self.layers.append(SoftMax())
 
     def forward(self, x):
-        """
-        Predict network output from input by passing it through several layers.
-        Args:
-            x: input to the network
-        Returns:
-            out: output of the network
-        """
+        out = x
+        for layer in self.layers:
+            out = layer.forward(out)
         return out
 
     def backward(self, dout):
-        """
-        Performs backward propagation pass given the loss gradients. 
-        Args:
-            dout: gradients of the loss
-        """
-        return
+        for layer in reversed(self.layers):
+            dout = layer.backward(dout)
