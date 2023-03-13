@@ -15,9 +15,10 @@ class Linear(object):
         return out
 
     def backward(self, dout):
+        n = dout.shape[0]
         dx = np.dot(dout, self.params['weight'].T)
-        self.grads['weight'] = np.outer(self.x, dout)
-        self.grads['bias'] = dout
+        self.grads['weight'] = np.dot(self.x.T, dout) / n
+        self.grads['bias'] = np.sum(dout, axis=0) / n
         return dx
 
 
@@ -40,29 +41,29 @@ class SoftMax(object):
         self.out = None
 
     def forward(self, x):
-        exp_vals = np.exp(x - np.max(x))
-        self.out = exp_vals / np.sum(exp_vals)
+        exp_vals = np.exp(x - np.max(x, axis=1, keepdims=True))
+        self.out = exp_vals / np.sum(exp_vals, axis=1, keepdims=True)
         return self.out
 
     def backward(self, dout):
-        out = self.out.reshape(1, self.out.size)
-        jacobian = - np.dot(out.reshape(-1, 1), out.reshape(1, -1))
-        diag_indices = np.diag_indices_from(jacobian)
-        jacobian[diag_indices] = out * (1 - out)
-        dx = np.dot(dout, jacobian)
-        return dx
+        dx = -self.out[:, :, None] * self.out[:, None, :]
+        dx[:, np.arange(self.out.shape[1]), np.arange(self.out.shape[1])] = self.out * (1 - self.out)
+        d_result = np.matmul(dout[:, None, :], dx).squeeze()
+        return d_result
 
 
 class CrossEntropy(object):
     def __init__(self):
         self.pd = None
         self.gt = None
+        self.batch_size = None
 
     def forward(self, pd, gt):
+        self.batch_size = pd.shape[0]
         self.pd = pd
         self.gt = gt
         eps = 1e-9
-        loss = - np.sum(gt * np.log(pd + eps))
+        loss = - np.sum(np.multiply(gt, np.log(pd + eps))) / self.batch_size
         return loss
 
     def backward(self):

@@ -26,3 +26,11 @@ class MLP(object):
     def backward(self, dout):
         for layer in reversed(self.layers):
             dout = layer.backward(dout)
+
+    def update(self, lr):
+        for layer in self.layers:
+            if isinstance(layer, Linear):
+                layer.params['weight'] -= lr * layer.grads['weight']
+                layer.params['bias'] -= lr * layer.grads['bias']
+                layer.grads['weight'] = np.zeros_like(layer.params['weight'])
+                layer.grads['bias'] = np.zeros_like(layer.params['bias'])
