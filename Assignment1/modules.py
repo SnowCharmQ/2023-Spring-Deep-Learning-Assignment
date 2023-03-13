@@ -48,7 +48,8 @@ class SoftMax(object):
     def backward(self, dout):
         dx = -self.out[:, :, None] * self.out[:, None, :]
         dx[:, np.arange(self.out.shape[1]), np.arange(self.out.shape[1])] = self.out * (1 - self.out)
-        d_result = np.matmul(dout[:, None, :], dx).squeeze()
+        d_result = np.matmul(dout[:, None, :], dx)
+        d_result = np.squeeze(d_result, axis=0)
         return d_result
 
 
