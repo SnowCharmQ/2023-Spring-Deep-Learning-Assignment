@@ -2,6 +2,7 @@ import numpy as np
 from sklearn import model_selection
 
 from modules import CrossEntropy
+from matplotlib import pyplot as plt
 
 
 def one_hot(input, num_classes=2):
@@ -27,7 +28,9 @@ class BGD(object):
         train_acc = []
         test_loss = []
         test_acc = []
+        epochs = []
         for epoch in range(max_epochs):
+            epochs.append(epoch)
             total_loss = 0
             total_acc = 0
             for i in range(num_batches):
@@ -51,11 +54,23 @@ class BGD(object):
             pd_test = self.mlp.forward(x_test)
             total_loss = criterion.forward(pd_test, y_test)
             total_acc = accuracy(pd_test, y_test)
-            test_loss.append(total_loss / len(y_test))
+            test_loss.append(total_loss)
             test_acc.append(total_acc)
             if epoch % eval_freq == 0:
                 print(f'BGD Epoch {epoch}:')
                 print(f'Average Train Loss: {avg_loss} | Average Train Accuracy: {avg_acc}')
-                print(f'Average Test Loss: {total_loss / len(y_test)} | '
+                print(f'Average Test Loss: {total_loss} | '
                       f'Average Test Accuracy: {total_acc}')
                 print()
+
+        plt.plot(epochs, train_loss, color='red', alpha=0.8, linewidth=1, label='Train Loss')
+        plt.plot(epochs, test_loss, color='blue', alpha=0.8, linewidth=1, label='Test Loss')
+        plt.legend(loc='upper right')
+        plt.title('Loss Chart')
+        plt.show()
+
+        plt.plot(epochs, train_acc, color='red', alpha=0.8, linewidth=1, label='Train Accuracy')
+        plt.plot(epochs, test_acc, color='blue', alpha=0.8, linewidth=1, label='Test Accuracy')
+        plt.legend(loc='lower right')
+        plt.title('Accuracy Chart')
+        plt.show()
