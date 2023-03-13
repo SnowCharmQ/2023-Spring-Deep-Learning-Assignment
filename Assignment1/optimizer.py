@@ -18,11 +18,15 @@ class BGD(object):
     def __init__(self, mlp):
         self.mlp = mlp
 
-    def optimize(self, inputs, labels, lr, max_epochs, batch_size=4):
+    def optimize(self, inputs, labels, lr, max_epochs, eval_freq, batch_size=4):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(inputs, labels, shuffle=True, test_size=0.2)
         y_train, y_test = one_hot(y_train), one_hot(y_test)
         num_batches = int(np.ceil(len(x_train) / batch_size))
         criterion = CrossEntropy()
+        train_loss = []
+        train_acc = []
+        test_loss = []
+        test_acc = []
         for epoch in range(max_epochs):
             total_loss = 0
             total_acc = 0
@@ -41,4 +45,17 @@ class BGD(object):
                 total_acc += acc
             avg_loss = total_loss / num_batches
             avg_acc = total_acc / num_batches
-            print(f'Epoch {epoch}: Average Loss: {avg_loss} , Average Accuracy: {avg_acc}')
+            train_loss.append(avg_loss)
+            train_acc.append(avg_acc)
+
+            pd_test = self.mlp.forward(x_test)
+            total_loss = criterion.forward(pd_test, y_test)
+            total_acc = accuracy(pd_test, y_test)
+            test_loss.append(total_loss / len(y_test))
+            test_acc.append(total_acc)
+            if epoch % eval_freq == 0:
+                print(f'BGD Epoch {epoch}:')
+                print(f'Average Train Loss: {avg_loss} | Average Train Accuracy: {avg_acc}')
+                print(f'Average Test Loss: {total_loss / len(y_test)} | '
+                      f'Average Test Accuracy: {total_acc}')
+                print()

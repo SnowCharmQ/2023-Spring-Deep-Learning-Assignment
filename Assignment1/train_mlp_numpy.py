@@ -33,7 +33,7 @@ def train():
 
     mlp = MLP(2, n_hidden, 2)
     optimizer = BGD(mlp)
-    optimizer.optimize(inputs, labels, learning_rate, max_steps)
+    optimizer.optimize(inputs, labels, learning_rate, max_steps, eval_freq)
 
 
 def main():
