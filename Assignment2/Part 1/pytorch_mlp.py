@@ -4,25 +4,27 @@ from __future__ import print_function
 
 import torch.nn as nn
 
+
+def init_weights(m):
+    if type(m) == nn.Linear:
+        nn.init.normal_(m.weight, mean=0, std=0.0001)
+        m.bias.data.fill_(0.0)
+
+
 class MLP(nn.Module):
 
     def __init__(self, n_inputs, n_hidden, n_classes):
-        """
-        Initializes multi-layer perceptron object.    
-        Args:
-            n_inputs: number of inputs (i.e., dimension of an input vector).
-            n_hidden: list of integers, where each integer is the number of units in each linear layer
-            n_classes: number of classes of the classification problem (i.e., output dimension of the network)
-        """
-        pass
-
+        super(MLP, self).__init__()
+        self.layers = nn.Sequential()
+        in_features = n_inputs
+        for (i, out_features) in enumerate(n_hidden):
+            self.layers.add_module('linear' + str(i), nn.Linear(in_features, out_features))
+            self.layers.add_module('relu' + str(i), nn.ReLU())
+            in_features = out_features
+        self.layers.add_module('linear' + str(len(n_hidden)), nn.Linear(in_features, n_classes))
+        self.layers.add_module('softmax', nn.Softmax(dim=1))
+        self.layers.apply(init_weights)
 
     def forward(self, x):
-        """
-        Predict network output from input by passing it through several layers.
-        Args:
-            x: input to the network
-        Returns:
-            out: output of the network
-        """
+        out = self.layers(x)
         return out
