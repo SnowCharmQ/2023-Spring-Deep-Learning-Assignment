@@ -6,6 +6,7 @@ import torch
 import argparse
 import numpy as np
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from pytorch_mlp import MLP
 from torch.optim import SGD
 from sklearn import datasets, model_selection
@@ -13,16 +14,32 @@ from sklearn import datasets, model_selection
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '20'
 LEARNING_RATE_DEFAULT = 1e-2
-MAX_EPOCHS_DEFAULT = 1500
+MAX_EPOCHS_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 10
 
 FLAGS = None
 
 
+def draw(train_loss, test_loss, train_acc, test_acc, epochs):
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, train_loss, color='red', alpha=0.8, linewidth=1, label='Train Loss')
+    plt.plot(epochs, test_loss, color='blue', alpha=0.8, linewidth=1, label='Test Loss')
+    plt.legend(loc='upper right')
+    plt.title('Loss Chart')
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, train_acc, color='red', alpha=0.8, linewidth=1, label='Train Accuracy')
+    plt.plot(epochs, test_acc, color='blue', alpha=0.8, linewidth=1, label='Test Accuracy')
+    plt.legend(loc='lower right')
+    plt.title('Accuracy Chart')
+    plt.show()
+
+
 def accuracy(predictions, targets):
-    predicted_labels = torch.argmax(predictions, dim=1)
-    true_labels = torch.argmax(targets, dim=1)
-    return torch.mean((predicted_labels == true_labels).float())
+    predictions, targets = predictions.detach().numpy(), targets.detach().numpy()
+    predicted_labels = np.argmax(predictions, axis=1)
+    true_labels = np.argmax(targets, axis=1)
+    return np.mean(predicted_labels == true_labels)
 
 
 def one_hot(input, num_classes=2):
@@ -44,9 +61,19 @@ def train():
     criterion = nn.CrossEntropyLoss()
     x_train, x_test, y_train, y_test = model_selection.train_test_split(inputs, labels, shuffle=True, test_size=0.2)
     y_train, y_test = one_hot(y_train), one_hot(y_test)
+    x_test, y_test = torch.from_numpy(x_test).float(), torch.from_numpy(y_test).float()
+    train_loss = []
+    best_train_loss = 1e5
+    train_acc = []
+    best_train_acc = 0
+    test_loss = []
+    best_test_loss = 1e5
+    test_acc = []
+    best_test_acc = 0
+    epochs = []
     n_samples = x_train.shape[0]
-    best_train_loss, best_train_acc = 1e5, 0
     for epoch in range(max_epochs):
+        epochs.append(epoch)
         total_loss = 0
         total_acc = 0
         shuffled_indices = np.random.permutation(n_samples)
@@ -66,14 +93,34 @@ def train():
             total_acc += acc
         avg_loss = total_loss / n_samples
         avg_acc = total_acc / n_samples
+        train_loss.append(avg_loss.detach().numpy())
+        train_acc.append(avg_acc)
         if best_train_loss > avg_loss:
             best_train_loss = avg_loss
         if best_train_acc < avg_acc:
             best_train_acc = avg_acc
+        pd_test = mlp(x_test)
+        with torch.no_grad():
+            loss_test = criterion(pd_test, y_test)
+            acc_test = accuracy(pd_test, y_test)
+        test_loss.append(loss_test.detach().numpy())
+        test_acc.append(acc_test)
+        if best_test_loss > loss_test:
+            best_test_loss = loss_test
+        if best_test_acc < acc_test:
+            best_test_acc = acc_test
         if epoch % eval_freq == 0 or epoch == (max_epochs - 1):
             print(f'SGD Epoch {epoch}:')
             print(f'Average Train Loss: {avg_loss} | '
                   f'Average Train Accuracy: {avg_acc}')
+            print(f'Average Test Loss: {loss_test} | '
+                  f'Average Test Accuracy: {acc_test}')
+            print()
+    draw(train_loss, test_loss, train_acc, test_acc, epochs)
+    print(f'Best Train Loss: {best_train_loss} | '
+          f'Best Train Accuracy: {best_train_acc}\n'
+          f'Best Test Loss: {best_test_loss} | '
+          f'Best Test Accuracy: {best_test_acc}')
 
 
 def main():
