@@ -7,48 +7,35 @@ import time
 import numpy as np
 
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from dataset import PalindromeDataset
 from vanilla_rnn import VanillaRNN
 
+
 def train(config):
-
-    # Initialize the model that we are going to use
-    model = None  # fixme
-
-    # Initialize the dataset and data loader (leave the +1)
-    dataset = PalindromeDataset(config.input_length+1)
+    model = VanillaRNN(4, 1, 128, 10, 128)
+    dataset = PalindromeDataset(5)
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
-
-    # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
-
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=0.001)
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
-
-        # Add more code here ...
-
-        # the following line is to deal with exploding gradients
-        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
-
-        # Add more code here ...
-
-        loss = np.inf   # fixme
-        accuracy = 0.0  # fixme
-
-        if step % 10 == 0:
-            # print acuracy/loss here
-
-        if step == config.train_steps:
-            # If you receive a PyTorch data-loader error, check this bug report:
-            # https://github.com/pytorch/pytorch/pull/9655
-            break
+        batch_targets = batch_targets
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config.max_norm)
+        batch_outputs = model(batch_inputs)
+        loss = criterion(batch_outputs, batch_targets)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        acc = np.mean(np.argmax(batch_outputs.detach().numpy(), axis=1) == batch_targets.detach().numpy())
+        if step % 100 == 0:
+            print('Step: ', step, 'Loss: ', loss.item(), 'Accuracy: ', acc)
 
     print('Done training.')
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     # Parse training configuration
     parser = argparse.ArgumentParser()
 
